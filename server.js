@@ -44,6 +44,10 @@ async function encryptPassword(password) {
     }
   }
 
+const generateId = () => {
+    return crypto.randomBytes(12).toString('hex'); // Generates a 24-character hexadecimal string
+  };
+
 const apiConfig = {
     method: 'post',
     headers: {
@@ -83,8 +87,153 @@ app.post('/submit-package', (req, res) => {
       });
   });
 
+  app.put('/edit-offer/:id', async (req, res) => {
+    const { id } = req.params; 
+    const updateData = req.body; 
+
+    console.log(id)
+
+    const data = JSON.stringify({
+        collection: "packages", 
+        database: "carryon", 
+        dataSource: "Cluster0",
+        filter: { _id: id }, 
+        update: { $set: updateData }, 
+    });
+
+    axios({ ...apiConfig, url: `${apiConfig.urlBase}updateOne`, data })
+        .then(response => res.json(response.data))
+        .catch(error => {
+            console.error('Error updating offer:', error);
+            res.status(500).send(error);
+        });
+});
+
+app.delete('/delete-offer/:id', async (req, res) => {
+  const { id } = req.params;
+
+  const data = JSON.stringify({
+      collection: "packages", 
+      database: "carryon", 
+      dataSource: "Cluster0",
+      filter: { _id: id }, 
+  });
+
+  console.log(id)
+
+  axios({ ...apiConfig, url: `${apiConfig.urlBase}deleteOne`, data })
+      .then(response => res.json(response.data))
+      .catch(error => {
+          console.error('Error deleting offer:', error);
+          res.status(500).send(error);
+      });
+});
+
+
+
+  app.post('/set-notification', (req, res) => {
+    const packageData = req.body;
+    if (!packageData._id) {
+      packageData._id = generateId();
+    }
+  
+    const data = JSON.stringify({
+      "collection": "notifications",
+      "database": "carryon",
+      "dataSource": "Cluster0",
+      "document": packageData
+    });
+  
+    axios({ ...apiConfig, url: `${apiConfig.urlBase}insertOne`, data })
+      .then(response => {
+        res.json(response.data);
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        res.status(500).send(error);
+      });
+  });
+
+  app.post('/get-notifications', (req, res) => {
+    const { username } = req.body;
+  
+    if (!username) {
+      return res.status(400).json({ error: 'Username is required' });
+    }
+  
+    const data = JSON.stringify({
+      collection: "notifications",
+      database: "carryon",
+      dataSource: "Cluster0",
+      filter: { username: username },
+    });
+  
+    axios({
+      ...apiConfig,
+      url: `${apiConfig.urlBase}find`,
+      data,
+    })
+      .then((response) => {
+        res.json(response.data.documents);
+      })
+      .catch((error) => {
+        console.error('Error:', error);
+        res.status(500).send(error);
+      });
+  });
+  
+
+app.get('/packages', (req, res) => {
+  const type = req.query.type; // Get the type (sell or buy) from the request
+  const pipeline = [];
+
+  // Match packages based on type (sell or buy)
+  if (type === 'sell' || type === 'buy') {
+    pipeline.push({
+      $match: {
+        type: type, // Filter by type (sell or buy)
+      },
+    });
+  }
+
+  // Filter out expired packages
+  pipeline.push({
+    $match: {
+      expirationDate: {
+        $gt: new Date(), // Only include packages where expirationDate is greater than the current date
+      },
+    },
+  });
+
+  // Add a $sort stage to sort by departureDate in ascending order (earliest first)
+  pipeline.push({
+    $sort: {
+      departureDate: 1, // 1 for ascending order (earliest first)
+    },
+  });
+
+  const data = JSON.stringify({
+    collection: 'packages',
+    database: 'carryon',
+    dataSource: 'Cluster0',
+    pipeline: pipeline,
+  });
+
+  axios({ ...apiConfig, url: `${apiConfig.urlBase}aggregate`, data })
+    .then((response) => {
+      res.json(response.data.documents);
+    })
+    .catch((error) => {
+      console.error('Error:', error);
+      res.status(500).send(error);
+    });
+});
+
 
   const registerUser = async (userData) => {
+
+    console.log(userData)
+
     try {
       // Check if the username exists
       let response = await axiosInstance.post('findOne', {
