@@ -7,6 +7,14 @@ const moment = require('moment');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
+
+const multer = require('multer');
+const { v2: cloudinary } = require('cloudinary');
+const dotenv = require('dotenv');
+const fs = require('fs');
+
+dotenv.config();
+
 const app = express();
 const PORT = 3001;
 app.use(express.json());
@@ -24,6 +32,13 @@ const generateToken = (userId) => {
     };
     return jwt.sign(payload, secretKey, { expiresIn });;
   };
+
+// Configure Cloudinary
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
 
 
 async function encryptPassword(password) {
@@ -63,15 +78,14 @@ const axiosInstance = axios.create({
     headers: apiConfig.headers,
   });
 
-
-app.post('/submit-package', (req, res) => {
+  app.post('/create-chat', (req, res) => {
     const packageData = req.body;
     if (!packageData._id) {
       packageData._id = generateId();
     }
   
     const data = JSON.stringify({
-      "collection": "packages",
+      "collection": "chats",
       "database": "carryon",
       "dataSource": "Cluster0",
       "document": packageData
@@ -86,6 +100,221 @@ app.post('/submit-package', (req, res) => {
         res.status(500).send(error);
       });
   });
+
+  // check if a chat already exists 
+  app.post('/check-chat', async (req, res) => {
+    const { userId, recieverName } = req.body;
+  
+    if (!userId || !recieverName) {
+      return res.status(400).json({ error: 'Both userId and recieverName are required' });
+    }
+  
+    const data = JSON.stringify({
+      collection: "chats",
+      database: "carryon",
+      dataSource: "Cluster0",
+      filter: {
+        $or: [
+          { userId, recieverName },
+          { userId: recieverName, recieverName: userId } // reverse match
+        ]
+      }
+    });
+  
+    try {
+      const response = await axios({
+        ...apiConfig,
+        url: `${apiConfig.urlBase}findOne`,
+        data,
+      });
+  
+      if (response.data.document) {
+        console.log("This chat exists")
+        return res.json({ exists: true, chat: response.data.document });
+      } else {
+        console.log("This chat doesnt exists")
+        return res.json({ exists: false });
+      }
+    } catch (error) {
+      console.error('Error checking chat existence:', error);
+      return res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+  
+
+  app.post('/get-chats', (req, res) => {
+    const { username } = req.body;
+  
+    if (!username) {
+      return res.status(400).json({ error: 'Username is required' });
+    } else {
+      console.log("username is valid");
+    }
+  
+    const data = JSON.stringify({
+      collection: "chats",
+      database: "carryon",
+      dataSource: "Cluster0",
+      filter: {
+        $or: [
+          { userId: username },
+          { recieverName: username }
+        ]
+      },
+      sort: {
+        lastTimestamp: -1  // Descending order
+      }
+    });
+  
+    axios({
+      ...apiConfig,
+      url: `${apiConfig.urlBase}find`,
+      data,
+    })
+      .then((response) => {
+        res.json(response.data.documents);
+      })
+      .catch((error) => {
+        console.error('Error:', error);
+        res.status(500).send(error);
+      });
+  });
+  
+  
+  app.post('/send-message', (req, res) => {
+    const packageData = req.body;
+    if (!packageData._id) {
+      packageData._id = generateId();
+    }
+  
+    const data = JSON.stringify({
+      "collection": "messages",
+      "database": "carryon",
+      "dataSource": "Cluster0",
+      "document": packageData
+    });
+  
+    axios({ ...apiConfig, url: `${apiConfig.urlBase}insertOne`, data })
+      .then(response => {
+        res.json(response.data);
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        res.status(500).send(error);
+      });
+  });
+
+  app.post('/get-messages', (req, res) => {
+    const { chatId } = req.body;
+
+    console.log(chatId)
+  
+    if (!chatId) {
+      return res.status(400).json({ error: 'Username is required' });
+    }
+    else{
+      console.log("username is vlid")
+    }
+  
+    const data = JSON.stringify({
+      collection: "messages",
+      database: "carryon",
+      dataSource: "Cluster0",
+      filter: { chatId: chatId },
+    });
+  
+    axios({
+      ...apiConfig,
+      url: `${apiConfig.urlBase}find`,
+      data,
+    })
+      .then((response) => {
+        console.log(response.data)
+        res.json(response.data.documents);
+      })
+      .catch((error) => {
+        console.error('Error:', error);
+        res.status(500).send(error);
+      });
+  });
+
+
+
+  app.put('/edit-chats/:id', async (req, res) => {
+    const { id } = req.params; 
+    const updateData = req.body; 
+
+    console.log(id)
+
+    const data = JSON.stringify({
+        collection: "chats", 
+        database: "carryon", 
+        dataSource: "Cluster0",
+        filter: { _id: id }, 
+        update: { $set: updateData }, 
+    });
+
+    axios({ ...apiConfig, url: `${apiConfig.urlBase}updateOne`, data })
+        .then(response => res.json(response.data))
+        .catch(error => {
+            console.error('Error updating offer:', error);
+            res.status(500).send(error);
+        });
+});
+
+
+
+app.post('/submit-package', (req, res) => {
+  const packageData = req.body;
+
+  if (!packageData._id) {
+    packageData._id = generateId();
+  }
+
+  // Add the datePosted timestamp
+  packageData.datePosted = new Date().toISOString();
+
+  const data = JSON.stringify({
+    "collection": "packages",
+    "database": "carryon",
+    "dataSource": "Cluster0",
+    "document": packageData
+  });
+
+  axios({ ...apiConfig, url: `${apiConfig.urlBase}insertOne`, data })
+    .then(response => {
+      res.json(response.data);
+    })
+    .catch(error => {
+      console.error('Error:', error);
+      res.status(500).send(error);
+    });
+});
+
+
+  app.post('/add-request', (req, res) => {
+    const packageData = req.body;
+    if (!packageData._id) {
+      packageData._id = generateId();
+    }
+  
+    const data = JSON.stringify({
+      "collection": "requests",
+      "database": "carryon",
+      "dataSource": "Cluster0",
+      "document": packageData
+    });
+  
+    axios({ ...apiConfig, url: `${apiConfig.urlBase}insertOne`, data })
+      .then(response => {
+        res.json(response.data);
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        res.status(500).send(error);
+      });
+  });
+
 
   app.put('/edit-offer/:id', async (req, res) => {
     const { id } = req.params; 
@@ -229,18 +458,238 @@ app.get('/packages', (req, res) => {
     });
 });
 
+app.get('/packages/by-user', (req, res) => {
+  const username = req.query.username;
+  const type = req.query.type;
+  const pipeline = [];
 
-  const registerUser = async (userData) => {
+  // Match by username
+  if (username) {
+    pipeline.push({
+      $match: {
+        username: username,
+      },
+    });
+  }
 
-    console.log(userData)
+  // Optionally match by type if provided
+  if (type === 'sell' || type === 'buy') {
+    pipeline.push({
+      $match: {
+        type: type,
+      },
+    });
+  }
+
+  // Filter out expired packages
+  pipeline.push({
+    $match: {
+      expirationDate: {
+        $gt: new Date(),
+      },
+    },
+  });
+
+  // Sort by departureDate ascending
+  pipeline.push({
+    $sort: {
+      departureDate: 1,
+    },
+  });
+
+  const data = JSON.stringify({
+    collection: 'packages',
+    database: 'carryon',
+    dataSource: 'Cluster0',
+    pipeline: pipeline,
+  });
+
+  axios({ ...apiConfig, url: `${apiConfig.urlBase}aggregate`, data })
+    .then((response) => {
+      res.json(response.data.documents);
+    })
+    .catch((error) => {
+      console.error('Error:', error);
+      res.status(500).send(error);
+    });
+});
+
+app.get('/sent-requests/by-user', (req, res) => {
+  const username = req.query.username;
+  const status = req.query.type;
+  const pipeline = [];
+
+  // Match by username
+  if (username) {
+    pipeline.push({
+      $match: {
+        reqquestee: username,
+      },
+    });
+  }
+
+  // Optionally match by type if provided
+  if (status === 'Pending' || status === 'Accepted') {
+    pipeline.push({
+      $match: {
+        status: status,
+      },
+    });
+  }
+
+  // Sort by departureDate ascending
+  pipeline.push({
+    $sort: {
+      departureDate: 1,
+    },
+  });
+
+  const data = JSON.stringify({
+    collection: 'requests',
+    database: 'carryon',
+    dataSource: 'Cluster0',
+    pipeline: pipeline,
+  });
+
+  axios({ ...apiConfig, url: `${apiConfig.urlBase}aggregate`, data })
+    .then((response) => {
+      res.json(response.data.documents);
+    })
+    .catch((error) => {
+      console.error('Error:', error);
+      res.status(500).send(error);
+    });
+});
+
+app.get('/recieved-requests/by-user', (req, res) => {
+  const username = req.query.username;
+  const status = req.query.type;
+  const pipeline = [];
+
+  // Match by username
+  if (username) {
+    pipeline.push({
+      $match: {
+        userId: username,
+      },
+    });
+  }
+
+  // Optionally match by type if provided
+  if (status === 'Pending' || status === 'Accepted') {
+    pipeline.push({
+      $match: {
+        status: status,
+      },
+    });
+  }
+
+  // Sort by departureDate ascending
+  pipeline.push({
+    $sort: {
+      departureDate: 1,
+    },
+  });
+
+  const data = JSON.stringify({
+    collection: 'requests',
+    database: 'carryon',
+    dataSource: 'Cluster0',
+    pipeline: pipeline,
+  });
+
+  axios({ ...apiConfig, url: `${apiConfig.urlBase}aggregate`, data })
+    .then((response) => {
+      res.json(response.data.documents);
+    })
+    .catch((error) => {
+      console.error('Error:', error);
+      res.status(500).send(error);
+    });
+});
+
+app.put('/edit-request/:id', async (req, res) => {
+  const { id } = req.params; 
+  const updateData = req.body; 
+
+  // console.log(id)
+
+  const data = JSON.stringify({
+      collection: "request", 
+      database: "carryon", 
+      dataSource: "Cluster0",
+      filter: { _id: id }, 
+      update: { $set: updateData }, 
+  });
+
+  axios({ ...apiConfig, url: `${apiConfig.urlBase}updateOne`, data })
+      .then(response => res.json(response.data))
+      .catch(error => {
+          console.error('Error updating offer:', error);
+          res.status(500).send(error);
+      });
+});
+
+
+    const registerUser = async (userData) => {
+      try {
+        // Check if the username exists
+        let response = await axiosInstance.post('findOne', {
+          dataSource: 'Cluster0',
+          database: 'carryon',
+          collection: 'users',
+          filter: { username: userData.username },
+        });
+    
+        if (response.data.document) {
+          return { status: 400, message: 'Username already exists' };
+        }
+    
+        // Check if the email exists
+        response = await axiosInstance.post('findOne', {
+          dataSource: 'Cluster0',
+          database: 'carryon',
+          collection: 'users',
+          filter: { email: userData.email },
+        });
+    
+        if (response.data.document) {
+          return { status: 400, message: 'Email already registered' };
+        }
+    
+        const { hashedPassword, ...rest } = userData;
+    
+        // Register the new user
+        response = await axiosInstance.post('insertOne', {
+          dataSource: 'Cluster0',
+          database: 'carryon',
+          collection: 'users',
+          document: {
+            ...rest,
+            hashedPassword: hashedPassword,
+            signupTimestamp: new Date(),
+          },
+        });
+    
+        const token = generateToken();
+    
+        return { status: 200, token };
+      } catch (error) {
+        console.error('Error registering user:', error);
+        return { status: 500, message: 'Internal server error' };
+      }
+    };
+    
+
+  const registerShipper = async (userData) => {
 
     try {
       // Check if the username exists
       let response = await axiosInstance.post('findOne', {
         dataSource: 'Cluster0', // Replace with your data source name
         database: 'carryon', // Replace with your database name
-        collection: 'users', // Replace with your collection name
-        filter: { username: userData.username },
+        collection: 'shippers', // Replace with your collection name
+        filter: { "completeUserData.userID": userData.completeUserData.userID },
       });
   
       if (response.data.document) {
@@ -251,8 +700,8 @@ app.get('/packages', (req, res) => {
       response = await axiosInstance.post('findOne', {
         dataSource: 'Cluster0',
         database: 'carryon',
-        collection: 'users',
-        filter: { email: userData.email },
+        collection: 'shippers',
+        filter: { email: userData.completeUserData.email },
       });
   
       if (response.data.document) {
@@ -263,7 +712,7 @@ app.get('/packages', (req, res) => {
       response = await axiosInstance.post('insertOne', {
         dataSource: 'Cluster0',
         database: 'carryon',
-        collection: 'users',
+        collection: 'shippers',
         document: { ...userData, signupTimestamp: new Date() },
       });
   
@@ -275,22 +724,81 @@ app.get('/packages', (req, res) => {
       return { status: 500, message: 'Internal server error' };
     }
   };
+
+
+  app.put('/update-notification/:id', async (req, res) => {
+    const { id } = req.params;
+    const updateData = req.body;
   
+    const data = JSON.stringify({
+      collection: "notifications",   // Use your actual collection name
+      database: "carryon",
+      dataSource: "Cluster0",
+      filter: { _id: { "$oid": id } },
+      update: { $set: updateData },
+    });
   
-  // Register User
+    try {
+      const response = await axios({
+        ...apiConfig,
+        url: `${apiConfig.urlBase}updateOne`,
+        data,
+      });
+  
+      res.json({ success: true, result: response.data });
+    } catch (error) {
+      console.error('Error updating notification:', error.response?.data || error.message);
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+app.post('/get-user', (req, res) => {
+    const { username } = req.body;
+    
+
+    if (!username) {
+      return res.status(400).json({ error: 'UserId is required' });
+    }
+  
+    const data = JSON.stringify({
+      collection: "users",
+      database: "carryon",
+      dataSource: "Cluster0",
+      filter: { "username": username },
+    });
+  
+    axios({
+      ...apiConfig,
+      url: `${apiConfig.urlBase}find`,
+      data,
+    })
+      .then((response) => {
+        res.json(response.data.documents);
+        console.log(response.data.documents)
+      })
+      .catch((error) => {
+        console.error('Error:', error);
+        res.status(500).send(error);
+      });
+  });
+  
   app.post('/register', async (req, res) => {
-    const { username, password, email, userType } = req.body;
-
-    const hashedPassword = await encryptPassword(password)
-
-    console.log(hashedPassword)
+    try {
+      const userData = { ...req.body };
+      userData.hashedPassword = await encryptPassword(userData.password);
+      delete userData.password;
+      delete userData.confirmPassword;
   
-    const response = await registerUser({ username, hashedPassword, email, userType });
+      const response = await registerUser(userData);
   
-    if (response.status === 200) {
-      res.json({ token: response.token });
-    } else {
-      res.status(response.status).json({ message: response.message });
+      if (response.status === 200) {
+        res.json({ token: response.token });
+      } else {
+        res.status(response.status).json({ message: response.message });
+      }
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ message: 'Registration failed' });
     }
   });
   
@@ -335,6 +843,380 @@ app.get('/packages', (req, res) => {
       })
       .catch(error => res.status(500).send(error));
   });
+
+
+
+
+
+  // Register shipper
+  app.post('/register-shipper', async (req, res) => {
+    var userData = {}
+    userData = req.body;
+
+    // console.log(req.body)
+
+    const hashedPassword = await encryptPassword(userData.password)
+
+    const completeUserData = {
+      ...userData,          // Spread all existing user data
+      hashedPassword,       // Add the hashed password
+      registrationDate: new Date(),
+      lastLoggedIn: new Date(),
+      isLoggedOn: false
+    };
+
+    // console.log(hashedPassword)
+  
+    const response = await registerShipper({ completeUserData });
+  
+    if (response.status === 200) {
+      res.json({ token: response.token });
+    } else {
+      res.status(response.status).json({ message: response.message });
+    }
+  });
+  
+  // Login shipper
+  app.post('/login-shipper', (req, res) => {
+    const { companyName, password } = req.body;
+
+    console.log(companyName)
+  
+    const data = JSON.stringify({
+      "collection": "shippers",
+      "database": "carryon",
+      "dataSource": "Cluster0",
+      "filter": { "completeUserData.companyName": companyName }
+    });
+  
+    axios({ ...apiConfig, url: `${apiConfig.urlBase}findOne`, data })
+      .then(response => {
+        const user = response.data.document;
+
+
+        if (user && bcrypt.compareSync(password, user.completeUserData.hashedPassword)) {
+          const token = jwt.sign({ userId: user.completeUserData.userID }, JWT_SECRET, { expiresIn: '1h' });
+  
+          console.log(user.completeUserData.userID)
+          // Update user's loggedOn status and loginTimestamp
+          const loginTimestamp = new Date().toISOString();
+          const updateData = JSON.stringify({
+            "collection": "shippers",
+            "database": "carryon",
+            "dataSource": "Cluster0",
+            "filter": { "completeUserData.userID": user.completeUserData.userID },
+            "update": { "$set": { "completeUserData.isLoggedOn": true, loginTimestamp } }
+          });
+  
+          axios({ ...apiConfig, url: `${apiConfig.urlBase}updateOne`, data: updateData })
+            .then(() => res.json({ token }))
+            .catch(error => res.status(500).send(error));
+  
+        } else {
+          res.status(401).send('Invalid credentials');
+        }
+      })
+      .catch(error => res.status(500).send(error));
+  });
+
+
+  app.post('/get-shipper', (req, res) => {
+    const { companyName } = req.body;
+    
+
+    if (!companyName) {
+      return res.status(400).json({ error: 'UserId is required' });
+    }
+  
+    const data = JSON.stringify({
+      collection: "shippers",
+      database: "carryon",
+      dataSource: "Cluster0",
+      filter: { "completeUserData.companyName": companyName },
+    });
+  
+    axios({
+      ...apiConfig,
+      url: `${apiConfig.urlBase}find`,
+      data,
+    })
+      .then((response) => {
+        res.json(response.data.documents);
+      })
+      .catch((error) => {
+        console.error('Error:', error);
+        res.status(500).send(error);
+      });
+  });
+
+  app.post('/get-all-shippers', (req, res) => {
+    const data = JSON.stringify({
+      collection: "shippers",
+      database: "carryon",
+      dataSource: "Cluster0",
+      filter: {}, // No condition
+    });
+  
+    axios({
+      ...apiConfig,
+      url: `${apiConfig.urlBase}find`,
+      data,
+    })
+      .then((response) => {
+        res.json(response.data.documents);
+      })
+      .catch((error) => {
+        console.error('Error:', error);
+        res.status(500).send(error);
+      });
+  });
+
+
+  app.post('/set-rate', (req, res) => {
+    const packageData = req.body;
+    if (!packageData._id) {
+      packageData._id = generateId();
+    }
+  
+    const data = JSON.stringify({
+      "collection": "rates",
+      "database": "carryon",
+      "dataSource": "Cluster0",
+      "document": packageData
+    });
+  
+    axios({ ...apiConfig, url: `${apiConfig.urlBase}insertOne`, data })
+      .then(response => {
+        res.json(response.data);
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        res.status(500).send(error);
+      });
+  });
+
+  app.post('/update-rate', (req, res) => {
+    const packageData = req.body;
+  
+    if (!packageData._id) {
+      return res.status(400).json({ error: 'Missing _id for update.' });
+    }
+  
+    const data = JSON.stringify({
+      collection: "rates",
+      database: "carryon",
+      dataSource: "Cluster0",
+      filter: { _id: packageData._id } ,  // Make sure _id is a valid ObjectId string
+      update: { "$set": packageData }
+    });
+  
+    axios({
+      ...apiConfig,
+      url: `${apiConfig.urlBase}updateOne`,
+      data
+    })
+      .then(response => {
+        res.json(response.data);
+      })
+      .catch(error => {
+        console.error('Error:', error.response?.data || error.message);
+        res.status(500).send(error);
+      });
+  });
+
+  app.post('/get-rates', (req, res) => {
+    const { companyId } = req.body;
+
+    if (!companyId) {
+      return res.status(400).json({ error: 'UserId is required' });
+    }
+  
+    const data = JSON.stringify({
+      collection: "rates",
+      database: "carryon",
+      dataSource: "Cluster0",
+      filter: { companyId : companyId},
+    });
+  
+    axios({
+      ...apiConfig,
+      url: `${apiConfig.urlBase}find`,
+      data,
+    })
+      .then((response) => {
+        res.json(response.data.documents);
+        console.log(response.data)
+        console.log("in get lead times function");
+
+      })
+      .catch((error) => {
+        console.error('Error:', error);
+        res.status(500).send(error);
+      });
+  });
+
+
+// set and get lead times
+  app.post('/set-leadTimes', (req, res) => {
+    const packageData = req.body;
+    if (!packageData._id) {
+      packageData._id = generateId();
+    }
+
+    const data = JSON.stringify({
+      "collection": "leadTimes",
+      "database": "carryon",
+      "dataSource": "Cluster0",
+      "document": packageData
+    });
+
+    axios({ ...apiConfig, url: `${apiConfig.urlBase}insertOne`, data })
+      .then(response => {
+        res.json(response.data);
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        res.status(500).send(error);
+      });
+  });
+
+  app.post('/update-leadTimes', (req, res) => {
+    const packageData = req.body;
+  
+    if (!packageData._id) {
+      return res.status(400).json({ error: 'Missing _id for update.' });
+    }
+  
+    const data = JSON.stringify({
+      collection: "leadTimes",
+      database: "carryon",
+      dataSource: "Cluster0",
+      filter: { _id: packageData._id },
+      update: { "$set": packageData }
+    });
+  
+    axios({
+      ...apiConfig,
+      url: `${apiConfig.urlBase}updateOne`,
+      data
+    })
+      .then(response => {
+        res.json(response.data);
+      })
+      .catch(error => {
+        console.error('Error:', error.response?.data || error.message);
+        res.status(500).send(error);
+      });
+  });
+  
+
+  app.post('/get-leadTimes', (req, res) => {
+    const { companyId } = req.body;
+
+    if (!companyId) {
+      return res.status(400).json({ error: 'UserId is required' });
+    }
+
+    const data = JSON.stringify({
+      collection: "leadTimes",
+      database: "carryon",
+      dataSource: "Cluster0",
+      filter: { companyId : companyId},
+    });
+
+    axios({
+      ...apiConfig,
+      url: `${apiConfig.urlBase}find`,
+      data,
+    })
+      .then((response) => {
+        res.json(response.data.documents);
+      })
+      .catch((error) => {
+        console.error('Error:', error);
+        res.status(500).send(error);
+      });
+  });
+
+  // Multer setup to store files temporarily
+const upload = multer({ dest: 'uploads/' });
+
+// Upload route
+app.post('/upload', upload.single('image'), async (req, res) => {
+  try {
+    const filePath = req.file.path;
+
+    // Upload to Cloudinary
+    const result = await cloudinary.uploader.upload(filePath, {
+      folder: 'chat_avatars', // Optional: target folder in Cloudinary
+    });
+
+    // Remove temp file
+    fs.unlinkSync(filePath);
+
+    res.json({ success: true, url: result.secure_url });
+  } catch (error) {
+    console.error('Upload error:', error);
+    res.status(500).json({ success: false, message: 'Image upload failed.' });
+  }
+});
+
+
+
+// set the reviews
+  app.post('/set-reviews', (req, res) => {
+    const packageData = req.body;
+    if (!packageData._id) {
+      packageData._id = generateId();
+    }
+
+    const data = JSON.stringify({
+      "collection": "reviews",
+      "database": "carryon",
+      "dataSource": "Cluster0",
+      "document": packageData
+    });
+
+    axios({ ...apiConfig, url: `${apiConfig.urlBase}insertOne`, data })
+      .then(response => {
+        res.json(response.data);
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        res.status(500).send(error);
+      });
+  });
+
+    app.post('/get-reviews', (req, res) => {
+    const { companyID } = req.body;
+
+    console.log("reviews company ID" , companyID)
+  
+    if (!companyID) {
+      return res.status(400).json({ error: 'Username is required' });
+    }
+  
+    const data = JSON.stringify({
+      collection: "reviews",
+      database: "carryon",
+      dataSource: "Cluster0",
+      filter: { companyId: companyID },
+    });
+  
+    axios({
+      ...apiConfig,
+      url: `${apiConfig.urlBase}find`,
+      data,
+    })
+      .then((response) => {
+        res.json(response.data.documents);
+      })
+      .catch((error) => {
+        console.error('Error:', error);
+        res.status(500).send(error);
+      });
+  });
+  
 
   app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
