@@ -949,6 +949,42 @@ app.post('/get-user', (req, res) => {
       });
   });
 
+    app.post('/update-shipper', (req, res) => {
+
+    const packageData = req.body;
+
+    const { filter, update } = packageData;
+
+    console.log(filter)
+    
+    if (!filter._id) {
+      return res.status(400).json({ error: 'Missing _id for update.' });
+    }
+  
+    const data = JSON.stringify({
+      collection: "shippers",
+      database: "carryon",
+      dataSource: "Cluster0",
+      filter: { 
+        "_id": { "$oid": filter._id } // Wrap the ID in $oid
+      },
+      update: { "$set": update }
+    });
+  
+    axios({
+      ...apiConfig,
+      url: `${apiConfig.urlBase}updateOne`,
+      data
+    })
+      .then(response => {
+        res.json(response.data);
+      })
+      .catch(error => {
+        console.error('Error:', error.response?.data || error.message);
+        res.status(500).send(error);
+      });
+  });
+
   app.post('/get-all-shippers', (req, res) => {
     const data = JSON.stringify({
       collection: "shippers",
@@ -1188,11 +1224,11 @@ app.post('/upload', upload.single('image'), async (req, res) => {
   });
 
     app.post('/get-reviews', (req, res) => {
-    const { companyID } = req.body;
+    const { companyId } = req.body;
 
-    console.log("reviews company ID" , companyID)
+    console.log("reviews company ID" , companyId)
   
-    if (!companyID) {
+    if (!companyId) {
       return res.status(400).json({ error: 'Username is required' });
     }
   
@@ -1200,7 +1236,7 @@ app.post('/upload', upload.single('image'), async (req, res) => {
       collection: "reviews",
       database: "carryon",
       dataSource: "Cluster0",
-      filter: { companyId: companyID },
+      filter: { companyID: companyId },
     });
   
     axios({
@@ -1210,13 +1246,124 @@ app.post('/upload', upload.single('image'), async (req, res) => {
     })
       .then((response) => {
         res.json(response.data.documents);
+        console.log(response.data.documents)
       })
       .catch((error) => {
         console.error('Error:', error);
         res.status(500).send(error);
       });
   });
+
+
+    app.post('/set-shipment', (req, res) => {
+    const packageData = req.body;
+    if (!packageData._id) {
+      packageData._id = generateId();
+    }
   
+    const data = JSON.stringify({
+      "collection": "shipments",
+      "database": "carryon",
+      "dataSource": "Cluster0",
+      "document": packageData
+    });
+  
+    axios({ ...apiConfig, url: `${apiConfig.urlBase}insertOne`, data })
+      .then(response => {
+        res.json(response.data);
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        res.status(500).send(error);
+      });
+  });
+  
+
+  app.post('/get-shipments', (req, res) => {
+    const { companyId } = req.body;
+
+    // console.log("shipments company ID" , companyId)
+  
+    if (!companyId) {
+      return res.status(400).json({ error: 'companyId is required' });
+    }
+  
+    const data = JSON.stringify({
+      collection: "shipments",
+      database: "carryon",
+      dataSource: "Cluster0",
+      filter: { companyId: companyId },
+    });
+  
+    axios({
+      ...apiConfig,
+      url: `${apiConfig.urlBase}find`,
+      data,
+    })
+      .then((response) => {
+        res.json(response.data.documents);
+        console.log(response.data.documents)
+      })
+      .catch((error) => {
+        console.error('Error:', error);
+        res.status(500).send(error);
+      });
+  });
+
+
+  app.post('/set-announcements', (req, res) => {
+    const packageData = req.body;
+    if (!packageData._id) {
+      packageData._id = generateId();
+    }
+  
+    const data = JSON.stringify({
+      "collection": "announcements",
+      "database": "carryon",
+      "dataSource": "Cluster0",
+      "document": packageData
+    });
+  
+    axios({ ...apiConfig, url: `${apiConfig.urlBase}insertOne`, data })
+      .then(response => {
+        res.json(response.data);
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        res.status(500).send(error);
+      });
+  });
+
+    app.post('/get-announcements', (req, res) => {
+    const { companyId } = req.body;
+
+    // console.log("shipments company ID" , companyId)
+  
+    if (!companyId) {
+      return res.status(400).json({ error: 'companyId is required' });
+    }
+  
+    const data = JSON.stringify({
+      collection: "announcements",
+      database: "carryon",
+      dataSource: "Cluster0",
+      filter: { companyId: companyId },
+    });
+  
+    axios({
+      ...apiConfig,
+      url: `${apiConfig.urlBase}find`,
+      data,
+    })
+      .then((response) => {
+        res.json(response.data.documents);
+        console.log(response.data.documents)
+      })
+      .catch((error) => {
+        console.error('Error:', error);
+        res.status(500).send(error);
+      });
+  });
 
   app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
