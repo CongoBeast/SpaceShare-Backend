@@ -612,8 +612,6 @@ app.put('/edit-request/:id', async (req, res) => {
   const { id } = req.params; 
   const updateData = req.body; 
 
-  // console.log(id)
-
   const data = JSON.stringify({
       collection: "request", 
       database: "carryon", 
@@ -781,6 +779,43 @@ app.post('/get-user', (req, res) => {
         res.status(500).send(error);
       });
   });
+
+  app.post('/delete-user', (req, res) => {
+
+    const packageData = req.body;
+
+    const { filter, update } = packageData;
+
+    console.log(filter)
+    
+    if (!filter._id) {
+      return res.status(400).json({ error: 'Missing _id for update.' });
+    }
+  
+    const data = JSON.stringify({
+      collection: "users",
+      database: "carryon",
+      dataSource: "Cluster0",
+      filter: { 
+        "_id": { "$oid": filter._id } // Wrap the ID in $oid
+      },
+      update: { "$set": update }
+    });
+  
+    axios({
+      ...apiConfig,
+      url: `${apiConfig.urlBase}updateOne`,
+      data
+    })
+      .then(response => {
+        res.json(response.data);
+      })
+      .catch(error => {
+        console.error('Error:', error.response?.data || error.message);
+        res.status(500).send(error);
+      });
+  });
+
   
   app.post('/register', async (req, res) => {
     try {
@@ -949,7 +984,7 @@ app.post('/get-user', (req, res) => {
       });
   });
 
-    app.post('/update-shipper', (req, res) => {
+  app.post('/update-shipper', (req, res) => {
 
     const packageData = req.body;
 
@@ -1237,6 +1272,7 @@ app.post('/upload', upload.single('image'), async (req, res) => {
       database: "carryon",
       dataSource: "Cluster0",
       filter: { companyID: companyId },
+      sort: { createdAt: -1 }
     });
   
     axios({
@@ -1302,7 +1338,6 @@ app.post('/upload', upload.single('image'), async (req, res) => {
     })
       .then((response) => {
         res.json(response.data.documents);
-        console.log(response.data.documents)
       })
       .catch((error) => {
         console.error('Error:', error);
@@ -1357,7 +1392,6 @@ app.post('/upload', upload.single('image'), async (req, res) => {
     })
       .then((response) => {
         res.json(response.data.documents);
-        console.log(response.data.documents)
       })
       .catch((error) => {
         console.error('Error:', error);
