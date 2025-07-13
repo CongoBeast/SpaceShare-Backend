@@ -34,10 +34,16 @@ const generateToken = (userId) => {
   };
 
 // Configure Cloudinary
+// cloudinary.config({
+//   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+//   api_key: process.env.CLOUDINARY_API_KEY,
+//   api_secret: process.env.CLOUDINARY_API_SECRET,
+// });
+
 cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
+  cloud_name: "dxxlrzouc",
+  api_key: "191187614991536",
+  api_secret: "9b75q3SXcar-yJFsWQsfXWFhnM8",
 });
 
 
