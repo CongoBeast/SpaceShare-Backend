@@ -33,13 +33,6 @@ const generateToken = (userId) => {
     return jwt.sign(payload, secretKey, { expiresIn });;
   };
 
-// Configure Cloudinary
-// cloudinary.config({
-//   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-//   api_key: process.env.CLOUDINARY_API_KEY,
-//   api_secret: process.env.CLOUDINARY_API_SECRET,
-// });
-
 cloudinary.config({
   cloud_name: "dxxlrzouc",
   api_key: "191187614991536",
@@ -728,6 +721,42 @@ app.put('/edit-request/:id', async (req, res) => {
       return { status: 500, message: 'Internal server error' };
     }
   };
+
+  app.post('/update-user', (req, res) => {
+
+    const packageData = req.body;
+
+    const { filter, update } = packageData;
+
+    console.log(filter)
+    
+    if (!filter._id) {
+      return res.status(400).json({ error: 'Missing _id for update.' });
+    }
+  
+    const data = JSON.stringify({
+      collection: "users",
+      database: "carryon",
+      dataSource: "Cluster0",
+      filter: { 
+        "_id": { "$oid": filter._id } // Wrap the ID in $oid
+      },
+      update: { "$set": update }
+    });
+  
+    axios({
+      ...apiConfig,
+      url: `${apiConfig.urlBase}updateOne`,
+      data
+    })
+      .then(response => {
+        res.json(response.data);
+      })
+      .catch(error => {
+        console.error('Error:', error.response?.data || error.message);
+        res.status(500).send(error);
+      });
+  });
 
 
   app.put('/update-notification/:id', async (req, res) => {
