@@ -1440,9 +1440,8 @@ app.post('/upload', upload.single('image'), async (req, res) => {
     collection: "shipments",
     database: "carryon",
     dataSource: "Cluster0",
-    filter: { 
-      "_id": { "$oid": filter._id }
-    },
+    // filter: { "_id": { "$oid": filter._id }},
+    filter: { _id: filter._id },
     update: updateOperation
   });
 
