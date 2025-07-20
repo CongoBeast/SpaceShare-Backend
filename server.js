@@ -1380,41 +1380,50 @@ app.post('/upload', upload.single('image'), async (req, res) => {
       });
   });
 
-  //   app.post('/update-shipments', (req, res) => {
+app.post('/track', (req, res) => {
+    const { trackingId } = req.body;
 
-  //   const packageData = req.body;
+    if (!trackingId) {
+        return res.status(400).json({ error: 'Tracking ID is required' });
+    }
 
-  //   const { filter, update } = packageData;
+    const data = JSON.stringify({
+        collection: "shipments",
+        database: "carryon",
+        dataSource: "Cluster0",
+        filter: { 
+            shipperID: trackingId 
+        },
+        // Projection to include only necessary fields
+        projection: {
+            shipperID: 1,
+            transportMode: 1,
+            status: 1,
+            currentLocation: 1,
+            eta: 1,
+            timestamps: 1,
+            createdAt: 1,
+            clientsCount: 1
+        }
+    });
 
-  //   console.log(filter)
-    
-  //   if (!filter._id) {
-  //     return res.status(400).json({ error: 'Missing _id for update.' });
-  //   }
-  
-  //   const data = JSON.stringify({
-  //     collection: "shipments",
-  //     database: "carryon",
-  //     dataSource: "Cluster0",
-  //     filter: { 
-  //       "_id": { "$oid": filter._id } // Wrap the ID in $oid
-  //     },
-  //     update: { "$set": update }
-  //   });
-  
-  //   axios({
-  //     ...apiConfig,
-  //     url: `${apiConfig.urlBase}updateOne`,
-  //     data
-  //   })
-  //     .then(response => {
-  //       res.json(response.data);
-  //     })
-  //     .catch(error => {
-  //       console.error('Error:', error.response?.data || error.message);
-  //       res.status(500).send(error);
-  //     });
-  // });
+    axios({
+        ...apiConfig,
+        url: `${apiConfig.urlBase}findOne`,
+        data
+    })
+    .then(response => {
+        if (response.data.document) {
+            res.json(response.data.document);
+        } else {
+            res.status(404).json({ error: 'Shipment not found' });
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    });
+});
 
   app.post('/update-shipments', (req, res) => {
   const packageData = req.body;
