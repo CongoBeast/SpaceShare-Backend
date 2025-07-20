@@ -1380,41 +1380,85 @@ app.post('/upload', upload.single('image'), async (req, res) => {
       });
   });
 
-    app.post('/update-shipments', (req, res) => {
+  //   app.post('/update-shipments', (req, res) => {
 
-    const packageData = req.body;
+  //   const packageData = req.body;
 
-    const { filter, update } = packageData;
+  //   const { filter, update } = packageData;
 
-    console.log(filter)
+  //   console.log(filter)
     
-    if (!filter._id) {
-      return res.status(400).json({ error: 'Missing _id for update.' });
-    }
+  //   if (!filter._id) {
+  //     return res.status(400).json({ error: 'Missing _id for update.' });
+  //   }
   
-    const data = JSON.stringify({
-      collection: "shipments",
-      database: "carryon",
-      dataSource: "Cluster0",
-      filter: { 
-        "_id": { "$oid": filter._id } // Wrap the ID in $oid
-      },
-      update: { "$set": update }
-    });
+  //   const data = JSON.stringify({
+  //     collection: "shipments",
+  //     database: "carryon",
+  //     dataSource: "Cluster0",
+  //     filter: { 
+  //       "_id": { "$oid": filter._id } // Wrap the ID in $oid
+  //     },
+  //     update: { "$set": update }
+  //   });
   
-    axios({
-      ...apiConfig,
-      url: `${apiConfig.urlBase}updateOne`,
-      data
-    })
-      .then(response => {
-        res.json(response.data);
-      })
-      .catch(error => {
-        console.error('Error:', error.response?.data || error.message);
-        res.status(500).send(error);
-      });
+  //   axios({
+  //     ...apiConfig,
+  //     url: `${apiConfig.urlBase}updateOne`,
+  //     data
+  //   })
+  //     .then(response => {
+  //       res.json(response.data);
+  //     })
+  //     .catch(error => {
+  //       console.error('Error:', error.response?.data || error.message);
+  //       res.status(500).send(error);
+  //     });
+  // });
+
+  app.post('/update-shipments', (req, res) => {
+  const packageData = req.body;
+  const { filter, update } = packageData;
+
+  if (!filter._id) {
+    return res.status(400).json({ error: 'Missing _id for update.' });
+  }
+
+  // Modified to handle both direct updates and timestamp pushes
+  const updateOperation = {
+    ...(update.timestamps ? { 
+      $push: { timestamps: update.timestamps },
+      $set: {
+        currentLocation: update.currentLocation,
+        status: update.status,
+        eta: update.eta
+      }
+    } : { $set: update })
+  };
+
+  const data = JSON.stringify({
+    collection: "shipments",
+    database: "carryon",
+    dataSource: "Cluster0",
+    filter: { 
+      "_id": { "$oid": filter._id }
+    },
+    update: updateOperation
   });
+
+  axios({
+    ...apiConfig,
+    url: `${apiConfig.urlBase}updateOne`,
+    data
+  })
+    .then(response => {
+      res.json(response.data);
+    })
+    .catch(error => {
+      console.error('Error:', error.response?.data || error.message);
+      res.status(500).send(error);
+    });
+});
 
 
   app.post('/set-announcements', (req, res) => {
