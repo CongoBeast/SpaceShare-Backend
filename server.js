@@ -1326,6 +1326,29 @@ app.post('/upload', upload.single('image'), async (req, res) => {
   });
 
 
+  app.post('/set-packing-list', (req, res) => {
+    const packageData = req.body;
+    if (!packageData._id) {
+      packageData._id = generateId();
+    }
+  
+    const data = JSON.stringify({
+      "collection": "packing-list",
+      "database": "carryon",
+      "dataSource": "Cluster0",
+      "document": packageData
+    });
+  
+    axios({ ...apiConfig, url: `${apiConfig.urlBase}insertOne`, data })
+      .then(response => {
+        res.json(response.data);
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        res.status(500).send(error);
+      });
+  });
+
     app.post('/set-shipment', (req, res) => {
     const packageData = req.body;
     if (!packageData._id) {
