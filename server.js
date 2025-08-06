@@ -1545,7 +1545,108 @@ app.post('/track', (req, res) => {
       });
   });
 
+  // Keep-alive function to prevent server from spinning down
+const keepAlive = async () => {
+  try {
+    console.log('🔄 Keep-alive ping at:', new Date().toISOString());
+    
+    // Simple database query to keep connection active
+    const data = JSON.stringify({
+      collection: "users",
+      database: "meli-flow-prod", 
+      dataSource: "Cluster0",
+      filter: { "_id": "keep_alive_ping" }, // This document likely won't exist
+      limit: 1
+    });
+
+    const response = await axios({
+      ...apiConfig,
+      url: `${apiConfig.urlBase}findOne`,
+      data
+    });
+
+    console.log('✅ Keep-alive successful');
+    return response.data;
+    
+  } catch (error) {
+    console.log('⚠️ Keep-alive ping (expected - keeps connection active):', error.message);
+    // This is expected since we're querying for a non-existent document
+    // The important thing is that we made a connection to the database
+  }
+};
+
+// Start the keep-alive interval (15 minutes = 900,000 milliseconds)
+const startKeepAlive = () => {
+  console.log('🚀 Starting keep-alive service...');
+  
+  // Run immediately
+  keepAlive();
+  
+  // Then run every 15 minutes
+  const interval = setInterval(keepAlive, 15 * 60 * 1000);
+  
+  // Optional: Handle graceful shutdown
+  process.on('SIGINT', () => {
+    console.log('🛑 Stopping keep-alive service...');
+    clearInterval(interval);
+    process.exit(0);
+  });
+  
+  return interval;
+};
+
+// Alternative: More robust keep-alive with health check endpoint
+app.get('/health', (req, res) => {
+  res.status(200).json({ 
+    status: 'alive', 
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime() 
+  });
+});
+
+// Enhanced keep-alive that also makes HTTP request to itself
+const keepAliveEnhanced = async () => {
+  try {
+    console.log('🔄 Enhanced keep-alive ping at:', new Date().toISOString());
+    
+    // 1. Database ping
+    const data = JSON.stringify({
+      collection: "users",
+      database: "meli-flow-prod", 
+      dataSource: "Cluster0",
+      filter: { "_id": "keep_alive_ping" },
+      limit: 1
+    });
+
+    await axios({
+      ...apiConfig,
+      url: `${apiConfig.urlBase}findOne`,
+      data
+    });
+
+    // 2. Self HTTP request (if you know your server URL)
+    // Uncomment and replace with your actual server URL when deployed
+    const serverUrl = 'https://spaceshare-backend.onrender.com';
+    await axios.get(`${serverUrl}/health`);
+
+    console.log('✅ Enhanced keep-alive successful');
+    
+  } catch (error) {
+    console.log('⚠️ Keep-alive ping:', error.message);
+  }
+};
+
+// Start enhanced keep-alive
+const startEnhancedKeepAlive = () => {
+  console.log('🚀 Starting enhanced keep-alive service...');
+  keepAliveEnhanced();
+  return setInterval(keepAliveEnhanced, 15 * 60 * 1000);
+};
+
+startKeepAlive();
+
   app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
   });
   
+
