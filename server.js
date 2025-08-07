@@ -1555,7 +1555,7 @@ const keepAlive = async () => {
       collection: "users",
       database: "meli-flow-prod", 
       dataSource: "Cluster0",
-      filter: { "_id": "keep_alive_ping" }, // This document likely won't exist
+      filter: { "username": "Thomas43" }, // This document likely won't exist
       limit: 1
     });
 
@@ -1649,4 +1649,5 @@ startKeepAlive();
     console.log(`Server is running on port ${PORT}`);
   });
   
+
 
