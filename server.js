@@ -1675,7 +1675,8 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cors());
 
 // MongoDB Connection
-const uri = "mongodb+srv://thomasmethembe43:KSqoTlwvlK45FyVP@cluster0.2vjumfn.mongodb.net/meli-flow-prod?retryWrites=true&w=majority&appName=Cluster0";
+// const uri = "mongodb+srv://thomasmethembe43:KSqoTlwvlK45FyVP@cluster0.2vjumfn.mongodb.net/meli-flow-prod?retryWrites=true&w=majority&appName=Cluster0";
+const uri = "mongodb+srv://thomasmethembe43:KSqoTlwvlK45FyVP@cluster0.2vjumfn.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
 const client = new MongoClient(uri, {
   serverApi: {
     version: ServerApiVersion.v1,
@@ -1975,3 +1976,4 @@ app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 
 });
+
