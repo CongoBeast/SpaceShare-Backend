@@ -1675,7 +1675,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cors());
 
 // MongoDB Connection
-const uri = "mongodb+srv://thomasmethembe43:KSqoTlwvlK45FyVP@cluster0.2vjumfn.mongodb.net/carryon?retryWrites=true&w=majority&appName=Cluster0";
+const uri = "mongodb+srv://thomasmethembe43:KSqoTlwvlK45FyVP@cluster0.2vjumfn.mongodb.net/meli-flow-prod?retryWrites=true&w=majority&appName=Cluster0";
 const client = new MongoClient(uri, {
   serverApi: {
     version: ServerApiVersion.v1,
@@ -1711,7 +1711,7 @@ async function withDB(operation) {
   let connection;
   try {
     connection = await client.connect();
-    return await operation(connection.db("carryon"));
+    return await operation(connection.db("meli-flow-prod"));
   } catch (error) {
     console.error('Database error:', error);
     throw error;
@@ -1973,4 +1973,5 @@ app.get('/health', (req, res) => {
 // Start server
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
+
 });
