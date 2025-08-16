@@ -1718,7 +1718,8 @@ async function withDB(operation) {
     throw error;
   } finally {
     if (connection) {
-      await connection.close();
+      // await connection.close();
+      console.log("done")
     }
   }
 }
@@ -1976,4 +1977,5 @@ app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 
 });
+
 
