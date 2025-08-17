@@ -87,7 +87,7 @@ const axiosInstance = axios.create({
   
     const data = JSON.stringify({
       "collection": "chats",
-      "database": "carryon",
+      "database": "meli-flow-prod",
       "dataSource": "Cluster0",
       "document": packageData
     });
@@ -112,7 +112,7 @@ const axiosInstance = axios.create({
   
     const data = JSON.stringify({
       collection: "chats",
-      database: "carryon",
+      database: "meli-flow-prod",
       dataSource: "Cluster0",
       filter: {
         $or: [
@@ -154,7 +154,7 @@ const axiosInstance = axios.create({
   
     const data = JSON.stringify({
       collection: "chats",
-      database: "carryon",
+      database: "meli-flow-prod",
       dataSource: "Cluster0",
       filter: {
         $or: [
@@ -190,7 +190,7 @@ const axiosInstance = axios.create({
   
     const data = JSON.stringify({
       "collection": "messages",
-      "database": "carryon",
+      "database": "meli-flow-prod",
       "dataSource": "Cluster0",
       "document": packageData
     });
@@ -219,7 +219,7 @@ const axiosInstance = axios.create({
   
     const data = JSON.stringify({
       collection: "messages",
-      database: "carryon",
+      database: "meli-flow-prod",
       dataSource: "Cluster0",
       filter: { chatId: chatId },
     });
@@ -249,7 +249,7 @@ const axiosInstance = axios.create({
 
     const data = JSON.stringify({
         collection: "chats", 
-        database: "carryon", 
+        database: "meli-flow-prod", 
         dataSource: "Cluster0",
         filter: { _id: id }, 
         update: { $set: updateData }, 
@@ -277,7 +277,7 @@ app.post('/submit-package', (req, res) => {
 
   const data = JSON.stringify({
     "collection": "packages",
-    "database": "carryon",
+    "database": "meli-flow-prod",
     "dataSource": "Cluster0",
     "document": packageData
   });
@@ -301,7 +301,7 @@ app.post('/submit-package', (req, res) => {
   
     const data = JSON.stringify({
       "collection": "requests",
-      "database": "carryon",
+      "database": "meli-flow-prod",
       "dataSource": "Cluster0",
       "document": packageData
     });
@@ -325,7 +325,7 @@ app.post('/submit-package', (req, res) => {
 
     const data = JSON.stringify({
         collection: "packages", 
-        database: "carryon", 
+        database: "meli-flow-prod", 
         dataSource: "Cluster0",
         filter: { _id: id }, 
         update: { $set: updateData }, 
@@ -344,7 +344,7 @@ app.delete('/delete-offer/:id', async (req, res) => {
 
   const data = JSON.stringify({
       collection: "packages", 
-      database: "carryon", 
+      database: "meli-flow-prod", 
       dataSource: "Cluster0",
       filter: { _id: id }, 
   });
@@ -369,7 +369,7 @@ app.delete('/delete-offer/:id', async (req, res) => {
   
     const data = JSON.stringify({
       "collection": "notifications",
-      "database": "carryon",
+      "database": "meli-flow-prod",
       "dataSource": "Cluster0",
       "document": packageData
     });
@@ -393,7 +393,7 @@ app.delete('/delete-offer/:id', async (req, res) => {
   
     const data = JSON.stringify({
       collection: "notifications",
-      database: "carryon",
+      database: "meli-flow-prod",
       dataSource: "Cluster0",
       filter: { username: username },
     });
@@ -444,7 +444,7 @@ app.get('/packages', (req, res) => {
 
   const data = JSON.stringify({
     collection: 'packages',
-    database: 'carryon',
+    database: 'meli-flow-prod',
     dataSource: 'Cluster0',
     pipeline: pipeline,
   });
@@ -500,7 +500,7 @@ app.get('/packages/by-user', (req, res) => {
 
   const data = JSON.stringify({
     collection: 'packages',
-    database: 'carryon',
+    database: 'meli-flow-prod',
     dataSource: 'Cluster0',
     pipeline: pipeline,
   });
@@ -547,7 +547,7 @@ app.get('/sent-requests/by-user', (req, res) => {
 
   const data = JSON.stringify({
     collection: 'requests',
-    database: 'carryon',
+    database: 'meli-flow-prod',
     dataSource: 'Cluster0',
     pipeline: pipeline,
   });
@@ -594,7 +594,7 @@ app.get('/recieved-requests/by-user', (req, res) => {
 
   const data = JSON.stringify({
     collection: 'requests',
-    database: 'carryon',
+    database: 'meli-flow-prod',
     dataSource: 'Cluster0',
     pipeline: pipeline,
   });
@@ -615,7 +615,7 @@ app.put('/edit-request/:id', async (req, res) => {
 
   const data = JSON.stringify({
       collection: "request", 
-      database: "carryon", 
+      database: "meli-flow-prod", 
       dataSource: "Cluster0",
       filter: { _id: id }, 
       update: { $set: updateData }, 
@@ -635,7 +635,7 @@ app.put('/edit-request/:id', async (req, res) => {
         // Check if the username exists
         let response = await axiosInstance.post('findOne', {
           dataSource: 'Cluster0',
-          database: 'carryon',
+          database: 'meli-flow-prod',
           collection: 'users',
           filter: { username: userData.username },
         });
@@ -647,7 +647,7 @@ app.put('/edit-request/:id', async (req, res) => {
         // Check if the email exists
         response = await axiosInstance.post('findOne', {
           dataSource: 'Cluster0',
-          database: 'carryon',
+          database: 'meli-flow-prod',
           collection: 'users',
           filter: { email: userData.email },
         });
@@ -661,7 +661,7 @@ app.put('/edit-request/:id', async (req, res) => {
         // Register the new user
         response = await axiosInstance.post('insertOne', {
           dataSource: 'Cluster0',
-          database: 'carryon',
+          database: 'meli-flow-prod',
           collection: 'users',
           document: {
             ...rest,
@@ -686,7 +686,7 @@ app.put('/edit-request/:id', async (req, res) => {
       // Check if the username exists
       let response = await axiosInstance.post('findOne', {
         dataSource: 'Cluster0', // Replace with your data source name
-        database: 'carryon', // Replace with your database name
+        database: 'meli-flow-prod', // Replace with your database name
         collection: 'shippers', // Replace with your collection name
         filter: { "completeUserData.userID": userData.completeUserData.userID },
       });
@@ -698,7 +698,7 @@ app.put('/edit-request/:id', async (req, res) => {
       // Check if the email exists
       response = await axiosInstance.post('findOne', {
         dataSource: 'Cluster0',
-        database: 'carryon',
+        database: 'meli-flow-prod',
         collection: 'shippers',
         filter: { email: userData.completeUserData.email },
       });
@@ -710,7 +710,7 @@ app.put('/edit-request/:id', async (req, res) => {
       // Register the new user
       response = await axiosInstance.post('insertOne', {
         dataSource: 'Cluster0',
-        database: 'carryon',
+        database: 'meli-flow-prod',
         collection: 'shippers',
         document: { ...userData, signupTimestamp: new Date() },
       });
@@ -738,7 +738,7 @@ app.put('/edit-request/:id', async (req, res) => {
   
     const data = JSON.stringify({
       collection: "users",
-      database: "carryon",
+      database: "meli-flow-prod",
       dataSource: "Cluster0",
       filter: { 
         "_id": { "$oid": filter._id } // Wrap the ID in $oid
@@ -767,7 +767,7 @@ app.put('/edit-request/:id', async (req, res) => {
   
     const data = JSON.stringify({
       collection: "notifications",   // Use your actual collection name
-      database: "carryon",
+      database: "meli-flow-prod",
       dataSource: "Cluster0",
       filter: { _id: { "$oid": id } },
       update: { $set: updateData },
@@ -797,7 +797,7 @@ app.post('/get-user', (req, res) => {
   
     const data = JSON.stringify({
       collection: "users",
-      database: "carryon",
+      database: "meli-flow-prod",
       dataSource: "Cluster0",
       filter: { "username": username },
     });
@@ -831,7 +831,7 @@ app.post('/get-user', (req, res) => {
   
     const data = JSON.stringify({
       collection: "users",
-      database: "carryon",
+      database: "meli-flow-prod",
       dataSource: "Cluster0",
       filter: { 
         "_id": { "$oid": filter._id } // Wrap the ID in $oid
@@ -882,7 +882,7 @@ app.post('/get-user', (req, res) => {
   
     const data = JSON.stringify({
       "collection": "users",
-      "database": "carryon",
+      "database": "meli-flow-prod",
       "dataSource": "Cluster0",
       "filter": { username }
     });
@@ -899,7 +899,7 @@ app.post('/get-user', (req, res) => {
           const loginTimestamp = new Date().toISOString();
           const updateData = JSON.stringify({
             "collection": "users",
-            "database": "carryon",
+            "database": "meli-flow-prod",
             "dataSource": "Cluster0",
             "filter": { "_id": user._id },
             "update": { "$set": { isLoggedOn: true, loginTimestamp } }
@@ -956,7 +956,7 @@ app.post('/get-user', (req, res) => {
   
     const data = JSON.stringify({
       "collection": "shippers",
-      "database": "carryon",
+      "database": "meli-flow-prod",
       "dataSource": "Cluster0",
       "filter": { "completeUserData.companyName": companyName }
     });
@@ -974,7 +974,7 @@ app.post('/get-user', (req, res) => {
           const loginTimestamp = new Date().toISOString();
           const updateData = JSON.stringify({
             "collection": "shippers",
-            "database": "carryon",
+            "database": "meli-flow-prod",
             "dataSource": "Cluster0",
             "filter": { "completeUserData.userID": user.completeUserData.userID },
             "update": { "$set": { "completeUserData.isLoggedOn": true, loginTimestamp } }
@@ -1002,7 +1002,7 @@ app.post('/get-user', (req, res) => {
   
     const data = JSON.stringify({
       collection: "shippers",
-      database: "carryon",
+      database: "meli-flow-prod",
       dataSource: "Cluster0",
       filter: { "completeUserData.companyName": companyName },
     });
@@ -1035,7 +1035,7 @@ app.post('/get-user', (req, res) => {
   
     const data = JSON.stringify({
       collection: "shippers",
-      database: "carryon",
+      database: "meli-flow-prod",
       dataSource: "Cluster0",
       filter: { 
         "_id": { "$oid": filter._id } // Wrap the ID in $oid
@@ -1060,7 +1060,7 @@ app.post('/get-user', (req, res) => {
   app.post('/get-all-shippers', (req, res) => {
     const data = JSON.stringify({
       collection: "shippers",
-      database: "carryon",
+      database: "meli-flow-prod",
       dataSource: "Cluster0",
       filter: {}, // No condition
     });
@@ -1088,7 +1088,7 @@ app.post('/get-user', (req, res) => {
   
     const data = JSON.stringify({
       "collection": "rates",
-      "database": "carryon",
+      "database": "meli-flow-prod",
       "dataSource": "Cluster0",
       "document": packageData
     });
@@ -1112,7 +1112,7 @@ app.post('/get-user', (req, res) => {
   
     const data = JSON.stringify({
       collection: "rates",
-      database: "carryon",
+      database: "meli-flow-prod",
       dataSource: "Cluster0",
       filter: { _id: packageData._id } ,  // Make sure _id is a valid ObjectId string
       update: { "$set": packageData }
@@ -1141,7 +1141,7 @@ app.post('/get-user', (req, res) => {
   
     const data = JSON.stringify({
       collection: "rates",
-      database: "carryon",
+      database: "meli-flow-prod",
       dataSource: "Cluster0",
       filter: { companyId : companyId},
     });
@@ -1173,7 +1173,7 @@ app.post('/get-user', (req, res) => {
 
     const data = JSON.stringify({
       "collection": "leadTimes",
-      "database": "carryon",
+      "database": "meli-flow-prod",
       "dataSource": "Cluster0",
       "document": packageData
     });
@@ -1197,7 +1197,7 @@ app.post('/get-user', (req, res) => {
   
     const data = JSON.stringify({
       collection: "leadTimes",
-      database: "carryon",
+      database: "meli-flow-prod",
       dataSource: "Cluster0",
       filter: { _id: packageData._id },
       update: { "$set": packageData }
@@ -1227,7 +1227,7 @@ app.post('/get-user', (req, res) => {
 
     const data = JSON.stringify({
       collection: "leadTimes",
-      database: "carryon",
+      database: "meli-flow-prod",
       dataSource: "Cluster0",
       filter: { companyId : companyId},
     });
@@ -1280,7 +1280,7 @@ app.post('/upload', upload.single('image'), async (req, res) => {
 
     const data = JSON.stringify({
       "collection": "reviews",
-      "database": "carryon",
+      "database": "meli-flow-prod",
       "dataSource": "Cluster0",
       "document": packageData
     });
@@ -1306,7 +1306,7 @@ app.post('/upload', upload.single('image'), async (req, res) => {
   
     const data = JSON.stringify({
       collection: "reviews",
-      database: "carryon",
+      database: "meli-flow-prod",
       dataSource: "Cluster0",
       filter: { companyID: companyId },
       sort: { createdAt: -1 }
@@ -1336,7 +1336,7 @@ app.post('/upload', upload.single('image'), async (req, res) => {
   
     const data = JSON.stringify({
       "collection": "packing-list",
-      "database": "carryon",
+      "database": "meli-flow-prod",
       "dataSource": "Cluster0",
       "document": packageData
     });
@@ -1359,7 +1359,7 @@ app.post('/upload', upload.single('image'), async (req, res) => {
   
     const data = JSON.stringify({
       "collection": "shipments",
-      "database": "carryon",
+      "database": "meli-flow-prod",
       "dataSource": "Cluster0",
       "document": packageData
     });
@@ -1386,7 +1386,7 @@ app.post('/upload', upload.single('image'), async (req, res) => {
   
     const data = JSON.stringify({
       collection: "shipments",
-      database: "carryon",
+      database: "meli-flow-prod",
       dataSource: "Cluster0",
       filter: { shipperID: companyId },
     });
@@ -1414,7 +1414,7 @@ app.post('/track', (req, res) => {
 
     const data = JSON.stringify({
         collection: "shipments",
-        database: "carryon",
+        database: "meli-flow-prod",
         dataSource: "Cluster0",
         filter: { 
             shipperID: trackingId 
@@ -1472,7 +1472,7 @@ app.post('/track', (req, res) => {
 
   const data = JSON.stringify({
     collection: "shipments",
-    database: "carryon",
+    database: "meli-flow-prod",
     dataSource: "Cluster0",
     // filter: { "_id": { "$oid": filter._id }},
     filter: { _id: filter._id },
@@ -1502,7 +1502,7 @@ app.post('/track', (req, res) => {
   
     const data = JSON.stringify({
       "collection": "announcements",
-      "database": "carryon",
+      "database": "meli-flow-prod",
       "dataSource": "Cluster0",
       "document": packageData
     });
@@ -1528,7 +1528,7 @@ app.post('/track', (req, res) => {
   
     const data = JSON.stringify({
       collection: "announcements",
-      database: "carryon",
+      database: "meli-flow-prod",
       dataSource: "Cluster0",
       filter: { companyId: companyId },
     });
@@ -1555,7 +1555,7 @@ const keepAlive = async () => {
     // Simple database query to keep connection active
     const data = JSON.stringify({
       collection: "users",
-      database: "carryon", 
+      database: "meli-flow-prod", 
       dataSource: "Cluster0",
       filter: { "_id": "keep_alive_ping" }, // This document likely won't exist
       limit: 1
@@ -1614,7 +1614,7 @@ const keepAliveEnhanced = async () => {
     // 1. Database ping
     const data = JSON.stringify({
       collection: "users",
-      database: "carryon", 
+      database: "meli-flow-prod", 
       dataSource: "Cluster0",
       filter: { "_id": "keep_alive_ping" },
       limit: 1
@@ -1977,6 +1977,7 @@ startKeepAlive();
 //   console.log(`Server is running on port ${PORT}`);
 
 // });
+
 
 
 
