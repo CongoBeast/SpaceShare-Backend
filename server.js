@@ -2315,7 +2315,8 @@ app.get('/packages', async (req, res) => {
 
     pipeline.push({
       $match: {
-        expirationDate: { $gt: new Date() }
+        // expirationDate: { $gt: new Date() }
+        expirationDate: {$gt: new Date().toISOString().slice(0, 10)}
       }
     });
 
@@ -3132,6 +3133,7 @@ process.on('SIGINT', async () => {
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
+
 
 
 
