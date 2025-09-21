@@ -1989,6 +1989,15 @@ const dotenv = require('dotenv');
 const fs = require('fs');
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 
+const webpush = require('web-push');
+
+// Add VAPID configuration after dotenv.config() and before app setup
+webpush.setVapidDetails(
+  'mailto:thomasmethembe43@gmail.com', // Replace with your email
+  process.env.VAPID_PUBLIC_KEY || 'BK7dxcNdI2llF77NsAfx6I8Bve-Xkq0na15Vhi59dtipUwDVskIZsNly2xrsjMNZ7XgyeNN66xOQ9HUqdeaVPM0', // Add to .env file
+  process.env.VAPID_PRIVATE_KEY || 'BTwMeBKMUvUlERv5dg97Fxw2DSgAV--0gpRLA4X4uvU' // Add to .env file
+);
+
 dotenv.config();
 
 const app = express();
@@ -2160,6 +2169,20 @@ app.post('/send-message', async (req, res) => {
     console.error('Error:', error);
     res.status(500).send(error);
   }
+
+
+  try {
+  const senderName = packageData.userName || 'Someone';
+  const recipientId = packageData.recieverID;
+  const messageText = packageData.message;
+
+  if (recipientId && messageText) {
+    await sendPushNotification(recipientId, messageText, senderName);
+  }
+} catch (notificationError) {
+  console.error('Failed to send push notification:', notificationError);
+  // Don't fail the message sending if notification fails
+}
 });
 
 app.post('/get-messages', async (req, res) => {
@@ -2326,7 +2349,7 @@ app.get('/packages', async (req, res) => {
 
     const packages = await db.collection('packages').aggregate(pipeline).toArray();
     res.json(packages);
-    console.log(packages)
+    console.log(pipeline)
   } catch (error) {
     console.error('Error:', error);
     res.status(500).send(error);
@@ -3130,11 +3153,151 @@ process.on('SIGINT', async () => {
   process.exit(0);
 });
 
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+// Add subscription endpoint - place with other endpoints
+app.post('/subscribe', async (req, res) => {
+  try {
+    const { subscription, userId } = req.body;
+
+    if (!subscription || !userId) {
+      return res.status(400).json({ error: 'Subscription and userId are required' });
+    }
+
+    // Check if user already has a subscription
+    const existingSubscription = await db.collection("subscriptions").findOne({ userId });
+
+    if (existingSubscription) {
+      // Update existing subscription
+      await db.collection("subscriptions").updateOne(
+        { userId },
+        { 
+          $set: { 
+            subscription,
+            updatedAt: new Date().toISOString()
+          }
+        }
+      );
+    } else {
+      // Create new subscription
+      await db.collection("subscriptions").insertOne({
+        _id: generateId(),
+        userId,
+        subscription,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      });
+    }
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error saving subscription:', error);
+    res.status(500).json({ error: 'Failed to save subscription' });
+  }
+});
+
+// Add notification sending function
+const sendPushNotification = async (userId, message, senderName) => {
+  try {
+    const userSubscription = await db.collection("subscriptions").findOne({ userId });
+    
+    if (!userSubscription) {
+      console.log(`No subscription found for user: ${userId}`);
+      return false;
+    }
+
+    const payload = JSON.stringify({
+      title: 'Meli Flow - New Message',
+      body: `${senderName}: ${message}`,
+      icon: '/favicon-32x32.png',
+      badge: '/favicon-32x32.png',
+      tag: 'message-notification',
+      data: {
+        url: '/chat',
+        chatId: userId,
+        senderId: senderName
+      }
+    });
+
+    await webpush.sendNotification(userSubscription.subscription, payload);
+    console.log(`Push notification sent successfully to user: ${userId}`);
+    return true;
+
+  } catch (error) {
+    console.error('Error sending push notification:', error);
+    
+    // Remove invalid subscriptions
+    if (error.statusCode === 410 || error.statusCode === 404) {
+      await db.collection("subscriptions").deleteOne({ userId });
+      console.log(`Removed invalid subscription for user: ${userId}`);
+    }
+    
+    return false;
+  }
+};
+
+// Add notification endpoint
+app.post('/send-notification', async (req, res) => {
+  try {
+    const { recipientId, message, senderName } = req.body;
+
+    if (!recipientId || !message || !senderName) {
+      return res.status(400).json({ error: 'recipientId, message, and senderName are required' });
+    }
+
+    const success = await sendPushNotification(recipientId, message, senderName);
+    
+    if (success) {
+      res.json({ success: true, message: 'Notification sent successfully' });
+    } else {
+      res.json({ success: false, message: 'Failed to send notification - user may not have notifications enabled' });
+    }
+
+  } catch (error) {
+    console.error('Failed to send notification:', error);
+    res.status(500).json({ error: 'Failed to send notification' });
+  }
+});
+
+// Add this to your existing send-message endpoint after the message is successfully sent
+// Modify your existing /send-message endpoint by adding this after the insertOne call:
+
+// In your existing /send-message endpoint, add this after the successful insertOne:
+/*
+// Add this code block right after: const result = await db.collection("messages").insertOne(packageData);
+
+// Send push notification to recipient
+try {
+  const senderName = packageData.userName || 'Someone';
+  const recipientId = packageData.recieverID;
+  const messageText = packageData.message;
+
+  if (recipientId && messageText) {
+    await sendPushNotification(recipientId, messageText, senderName);
+  }
+} catch (notificationError) {
+  console.error('Failed to send push notification:', notificationError);
+  // Don't fail the message sending if notification fails
+}
+*/
+
+// Optional: Endpoint to remove subscription (for logout/unsubscribe)
+app.post('/unsubscribe', async (req, res) => {
+  try {
+    const { userId } = req.body;
+
+    if (!userId) {
+      return res.status(400).json({ error: 'userId is required' });
+    }
+
+    await db.collection("subscriptions").deleteOne({ userId });
+    res.json({ success: true, message: 'Unsubscribed successfully' });
+
+  } catch (error) {
+    console.error('Error unsubscribing:', error);
+    res.status(500).json({ error: 'Failed to unsubscribe' });
+  }
 });
 
 
-
-
-
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
+});
