@@ -2631,7 +2631,7 @@ app.post('/login', async (req, res) => {
 
     const user = await db.collection("users").findOne({ username });
 
-    console.log(user?.hashedPassword);
+    // console.log(user?.hashedPassword);
     
     if (user && bcrypt.compareSync(password, user.hashedPassword)) {
       const token = jwt.sign({ userId: user._id }, JWT_SECRET, { expiresIn: '1h' });
@@ -3301,3 +3301,4 @@ app.post('/unsubscribe', async (req, res) => {
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
+
